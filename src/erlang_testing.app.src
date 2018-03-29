@@ -1,6 +1,6 @@
-{application, mynodes,
+{application, erlang_testing,
  [
-    {description, "mynodes"},
+    {description, "erlang_testing"},
     {vsn, "0.0.1"},
     {applications, [
         kernel,
