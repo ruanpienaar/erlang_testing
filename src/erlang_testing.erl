@@ -1,4 +1,6 @@
 -module(erlang_testing).
+
+% Erlang Distribution
 -export([
     start_distrib/1,
     start_distrib/2,
@@ -6,6 +8,16 @@
     stop_distrib/0
 ]).
 
+% Test slave nodes
+-export([
+    slaves_setup/1,
+    cleanup_slaves/1
+]).
+
+% Application
+-export([
+    stop_extra_applications/0
+]).
 
 % @doc This will start the distribution ( shortnames , longnames ) with the supplied Nodename.
 % @end
@@ -40,3 +52,48 @@ distrib_already_started(_) ->
 -spec stop_distrib() -> ok | {error, not_allowed | not_found}.
 stop_distrib() ->
     net_kernel:stop().
+
+-spec slaves_setup(list(tuple())) -> list(node()).
+slaves_setup(Slaves) when is_list(Slaves) ->
+    lists:map(
+        fun({H})       -> slave_node_start(H);
+           ({H, N})    -> slave_node_start(H, N);
+           ({H, N, A}) -> slave_node_start(H, N, A)
+        end, Slaves).
+
+-spec slave_node_start(inet:hostname()) -> node().
+slave_node_start(Host) ->
+    {ok, SlaveName} = slave:start(Host),
+    SlaveName.
+
+-spec slave_node_start(inet:hostname(), atom() | string()) -> node().
+slave_node_start(Host, Name) ->
+    {ok, SlaveName} = slave:start(Host, Name),
+    SlaveName.
+
+-spec slave_node_start(inet:hostname(), atom() | string(), string()) -> node().
+slave_node_start(Host, Name, Args) ->
+    {ok, SlaveName} = slave:start(Host, Name, Args),
+    SlaveName.
+
+-spec cleanup_slaves(list(node())) -> boolean().
+cleanup_slaves(Slaves) ->
+    lists:all(fun(SlaveNodeName) ->
+        case slave:stop(SlaveNodeName) of
+            ok ->
+                true;
+            Reason ->
+                error_logger:error_msg(
+                    "Could not stop slave ~p Reason ~p",
+                    [SlaveNodeName, Reason]
+                ),
+                false
+        end
+    end, Slaves).
+
+-spec stop_extra_applications() -> list(ok).
+stop_extra_applications() ->
+    [ ok = application:stop(App) ||
+        {App,_ErtsVsn,_Vsn}
+        <- application:which_applications(), App /= kernel andalso App /= stdlib
+    ].
