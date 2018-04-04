@@ -22,22 +22,23 @@
 % @doc This will start the distribution ( shortnames , longnames ) with the supplied Nodename.
 % @end
 
--spec start_distrib(node()) -> ok.
+-spec start_distrib(node()) -> {ok, pid()}.
 start_distrib(Name) ->
     do_start_distrib([Name]).
 
--spec start_distrib(node(), shortnames | longnames) -> ok.
+-spec start_distrib(node(), shortnames | longnames) -> {ok, pid()}.
 start_distrib(Name, NameType) ->
     do_start_distrib([Name, NameType]).
 
--spec start_distrib(node(), shortnames | longnames, pos_integer()) -> ok.
+-spec start_distrib(node(), shortnames | longnames, pos_integer()) -> {ok, pid()}.
 start_distrib(Name, NameType, Ticktime) ->
     do_start_distrib([Name, NameType, Ticktime]).
 
+-spec do_start_distrib(list()) -> {ok, pid()}.
 do_start_distrib(A) ->
     case distrib_already_started(node()) of
         true ->
-            ok;
+            {ok, whereis(net_sup)};
         false ->
             [] = os:cmd("epmd -daemon"),
             net_kernel:start(A)
