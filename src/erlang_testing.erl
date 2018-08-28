@@ -11,7 +11,9 @@
 % Test slave nodes
 -export([
     slaves_setup/1,
-    cleanup_slaves/1
+    ct_slaves_setup/1,
+    cleanup_slaves/1,
+    ct_cleanup_slaves/1
 ]).
 
 % Application
@@ -40,7 +42,7 @@ do_start_distrib(A) ->
         true ->
             {ok, whereis(net_sup)};
         false ->
-            [] = os:cmd("epmd -daemon"),
+            % [] = os:cmd("epmd -daemon"),
             net_kernel:start(A)
     end.
 
@@ -62,6 +64,7 @@ slaves_setup(Slaves) when is_list(Slaves) ->
            ({H, N, A}) -> slave_node_start(H, N, A)
         end, Slaves).
 
+%% Slave
 -spec slave_node_start(inet:hostname()) -> node().
 slave_node_start(Host) ->
     {ok, SlaveName} = slave:start(Host),
@@ -80,16 +83,62 @@ slave_node_start(Host, Name, Args) ->
 -spec cleanup_slaves(list(node())) -> boolean().
 cleanup_slaves(Slaves) ->
     lists:all(fun(SlaveNodeName) ->
-        case slave:stop(SlaveNodeName) of
-            ok ->
-                true;
-            Reason ->
-                error_logger:error_msg(
-                    "Could not stop slave ~p Reason ~p",
-                    [SlaveNodeName, Reason]
-                ),
-                false
-        end
+        ok == slave:stop(SlaveNodeName)
+        % case slave:stop(SlaveNodeName) of
+        %     ok ->
+        %         true;
+        %     Reason ->
+        %         error_logger:error_msg(
+        %             "Could not stop slave ~p Reason ~p",
+        %             [SlaveNodeName, Reason]
+        %         ),
+        %         false
+        % end
+    end, Slaves).
+
+%% CT slave
+-spec ct_slaves_setup(list(tuple())) -> list(node()).
+ct_slaves_setup(Slaves) when is_list(Slaves) ->
+    lists:map(
+        fun({N}) ->
+                ct_slave_node_start(N);
+           ({HOrN, NOrOpts}) ->
+                ct_slave_node_start(HOrN, NOrOpts);
+           ({H, N, O}) ->
+                ct_slave_node_start(H, N, O)
+        end, Slaves).
+
+-spec ct_slave_node_start(atom()) -> node().
+ct_slave_node_start(Node) when is_atom(Node) ->
+    {ok, SlaveName} = ct_slave:start(Node),
+    SlaveName.
+
+-spec ct_slave_node_start(atom(), atom() | list()) -> node().
+ct_slave_node_start(HostOrNode, NodeOrOpts) when is_atom(HostOrNode) ->
+    {ok, SlaveName} = ct_slave:start(HostOrNode, NodeOrOpts),
+    SlaveName.
+
+-spec ct_slave_node_start(atom(), atom() | list(), list()) -> node().
+ct_slave_node_start(Host, Node, Opts) when is_atom(Host), is_atom(Node) ->
+    {ok, SlaveName} = ct_slave:start(Host, Node, Opts),
+    SlaveName.
+
+-spec ct_cleanup_slaves(list(node())) -> boolean().
+ct_cleanup_slaves(Slaves) ->
+    lists:all(fun(SlaveNodeName) ->
+        CtSlaveStopResponse = ct_slave:stop(SlaveNodeName),
+        io:format("CtSlaveStopResponse ~p\n", [CtSlaveStopResponse]),
+        {ok, SlaveNodeName} == CtSlaveStopResponse
+        % case slave:stop(SlaveNodeName) of
+        %     ok ->
+        %         true;
+        %     Reason ->
+        %         error_logger:error_msg(
+        %             "Could not stop slave ~p Reason ~p",
+        %             [SlaveNodeName, Reason]
+        %         ),
+        %         false
+        % end
     end, Slaves).
 
 -spec stop_extra_applications() -> list(ok).
