@@ -1,7 +1,7 @@
 -module(erlang_testing_web_socket).
 -include_lib("eunit/include/eunit.hrl").
 -export([
-    start_client/2,
+    start_client/3,
     send_ws_request/3,
     subscribe_to_ws_msgs/2,
     unsubscribe_to_ws_msgs/2,
@@ -32,7 +32,7 @@
 %% some_unit_test_() ->
 %%     {foreachx,
 %%      fun(_Test) ->
-%%         {ok, ClientPid, StartedApps} = erlang_testing_web_socket:start_client("localhost", 8080)
+%%         {ok, ClientPid, StartedApps} = erlang_testing_web_socket:start_client("localhost", 8080, "ws_url")
 %%      end,
 %%      fun(_Test, {ok, ClientPid, StartedApps}) ->
 %%         erlang_testing_web_socket:cleanup_client_pid(ClientPid),
@@ -51,7 +51,7 @@
 %% Simple test example:
 %%
 %% some_unit_test() ->
-%%     ClientPid = erlang_testing_web_socket:start_client("localhost", 8080),
+%%     ClientPid = erlang_testing_web_socket:start_client("localhost", 8080, "ws_url"),
 %%     erlang_testing_web_socket:send_ws_request(self(), ClientPid, <<"ping">>),
 %%     receive
 %%         X ->
@@ -73,9 +73,9 @@
 %% @doc
 %% connect to the hostname and port and upgrade the connection to websocket
 %% @end
-start_client(Hostname, Port) ->
+start_client(Hostname, Port, WsPath) ->
     {ok, StartedApps} = application:ensure_all_started(gun),
-    Pid = spawn_link(fun() -> worker_init(Hostname, Port) end),
+    Pid = spawn_link(fun() -> worker_init(Hostname, Port, WsPath) end),
     Pid ! {wait_for_init, self()},
     receive
         ok ->
@@ -135,7 +135,7 @@ cleanup_client_pid(ClientPid) ->
 %% Only handle the specific msg receives, so that the other messages
 %% are queued up in the mailbox, until init is over.
 %% Except for get_conn_pid, where a test might want to close early
-worker_init(Hostname, Port) ->
+worker_init(Hostname, Port, WsPath) ->
     ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
     {ok, ConnPid} = gun:open(Hostname, Port),
     true = erlang:link(ConnPid),
@@ -147,7 +147,7 @@ worker_init(Hostname, Port) ->
         1000 ->
             erlang:exit(self(), {{failed, ?FUNCTION_NAME, line, ?LINE}, could_not_open_connection})
     end,
-    Ref = gun:ws_upgrade(ConnPid, "/ws"),
+    Ref = gun:ws_upgrade(ConnPid, WsPath),
     receive
         {gun_upgrade, ServerPid2, Ref, Proto2, Headers} ->
             ?debugFmt("Gun connection ~p upgraded [~p]\n[~p]", [ServerPid2, Proto2, Headers]),
