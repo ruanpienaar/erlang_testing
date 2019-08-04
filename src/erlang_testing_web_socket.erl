@@ -127,6 +127,7 @@ cleanup_client_pid(ClientPid) ->
 %% Only handle the specific msg receives, so that the other messages
 %% are queued up in the mailbox, until init is over.
 worker_init(Hostname, Port) ->
+    ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
     {ok, ConnPid} = gun:open(Hostname, Port),
     true = erlang:link(ConnPid),
     receive
@@ -151,6 +152,8 @@ worker_init(Hostname, Port) ->
              conn_pid => ConnPid}).
 
 worker(#{conn_pid := ConnPid} = State) ->
+    ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
+
     receive
         {get_conn_pid, RequesterPid} ->
             error_logger:info_msg("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
