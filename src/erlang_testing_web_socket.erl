@@ -153,6 +153,7 @@ worker_init(Hostname, Port) ->
 worker(#{conn_pid := ConnPid} = State) ->
     receive
         {get_conn_pid, RequesterPid} ->
+            error_logger:info_msg("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             RequesterPid ! {ok, ConnPid},
             worker(State);
         {send_ws_request, RequesterPid, ReqJson} ->
