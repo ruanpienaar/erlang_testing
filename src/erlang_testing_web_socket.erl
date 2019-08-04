@@ -134,18 +134,19 @@ worker_init(Hostname, Port) ->
     receive
         {gun_up, ServerPid, Proto} ->
             ?debugFmt("Gun connection ~p up [~p]", [ServerPid, Proto]),
-            ok;
-        {get_conn_pid, RequesterPid} ->
-            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
-            RequesterPid ! {ok, ConnPid},
+            ok
+    after
+        1000 ->
+            erlang:exit(self(), {failed, ?FUNCTION_NAME, line, ?LINE})
     end,
     Ref = gun:ws_upgrade(ConnPid, "/ws"),
     receive
         {gun_upgrade, ServerPid2, Ref, Proto2, Headers} ->
             ?debugFmt("Gun connection ~p upgraded [~p]\n[~p]", [ServerPid2, Proto2, Headers]),
-            ok;
-        Other2 ->
-            ?debugFmt("[~p][~p] Oops received other ~p\n", [?MODULE, ?FUNCTION_NAME, Other2])
+            ok
+    after
+        1000 ->
+            erlang:exit(self(), {failed, ?FUNCTION_NAME, line, ?LINE})
     end,
     % start periodic pinging
     {ok, TRef} =
