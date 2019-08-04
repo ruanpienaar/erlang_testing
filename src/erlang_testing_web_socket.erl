@@ -22,20 +22,21 @@
 %% Steps below for using this in Eunit/Common Test.
 %%
 %% Add below to your setup fixture OR to your test:
-%%  _ClientPid = start_client("localhost", 8080).
+%%  _ClientPid = erlang_testing_web_socket:start_client("localhost", 8080).
 %%
 %% Add below to your cleanup fixture:
-%%  cleanup_client_pid(ClientPid)
+%%  erlang_testing_web_socket:cleanup_client_pid(ClientPid)
 %%
 %% Foreachx example:
 %%
 %% some_unit_test_() ->
 %%     {foreachx,
 %%      fun(_Test) ->
-%%         _ClientPid = erlang_testing_web_socket:start_client("localhost", 8080)
+%%         {ok, ClientPid, StartedApps} = erlang_testing_web_socket:start_client("localhost", 8080)
 %%      end,
-%%      fun(_Test, ClientPid) ->
-%%         erlang_testing_web_socket:cleanup_client_pid(ClientPid)
+%%      fun(_Test, {ok, ClientPid, StartedApps}) ->
+%%         erlang_testing_web_socket:cleanup_client_pid(ClientPid),
+%%         lists:foreach(fun(App) -> ok = application:stop(App) end, lists:reverse(StartedApps))
 %%      end,
 %%      [
 %%         {"test some_unit_test",
@@ -58,10 +59,10 @@
 %%                 {response,{text,<<"pong">>}},
 %%                 X
 %%             ),
-%%             cleanup_client_pid(ClientPid)
+%%             erlang_testing_web_socket:cleanup_client_pid(ClientPid)
 %%     after
 %%         1000 ->
-%%             cleanup_client_pid(ClientPid),
+%%             erlang_testing_web_socket:cleanup_client_pid(ClientPid),
 %%             erlang:exit(self(), {test, ?FUNCTION_NAME, failed, line, ?LINE})
 %%     end.
 %% @end
@@ -73,7 +74,9 @@
 %% connect to the hostname and port and upgrade the connection to websocket
 %% @end
 start_client(Hostname, Port) ->
-    spawn_link(fun() -> worker_init(Hostname, Port) end).
+    {ok, StartedApps} = application:ensure_all_started(gun),
+    Pid = spawn_link(fun() -> worker_init(Hostname, Port) end),
+    {ok, Pid, StartedApps}.
 
 %% @doc
 %% send a web socket request to the connected websocket client pid.
