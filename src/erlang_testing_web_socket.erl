@@ -137,7 +137,7 @@ worker_init(Hostname, Port) ->
             ok
     after
         1000 ->
-            erlang:exit(self(), {failed, ?FUNCTION_NAME, line, ?LINE})
+            erlang:exit(self(), {{failed, ?FUNCTION_NAME, line, ?LINE}, could_not_open_connection})
     end,
     Ref = gun:ws_upgrade(ConnPid, "/ws"),
     receive
