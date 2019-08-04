@@ -123,15 +123,16 @@ cleanup_client_pid(ClientPid) ->
 %%------------------------------------------------------------------------------
 %% Internal
 
+%% NB!
+%% Only handle the specific msg receives, so that the other messages
+%% are queued up in the mailbox, until init is over.
 worker_init(Hostname, Port) ->
     {ok, ConnPid} = gun:open(Hostname, Port),
     true = erlang:link(ConnPid),
     receive
         {gun_up, ServerPid, Proto} ->
             error_logger:info_msg("Gun connection ~p up [~p]", [ServerPid, Proto]),
-            ok;
-        Other ->
-            error_logger:info_msg("[~p][~p] Oops received other ~p\n", [?MODULE, ?FUNCTION_NAME, Other])
+            ok
     end,
     Ref = gun:ws_upgrade(ConnPid, "/ws"),
     receive
