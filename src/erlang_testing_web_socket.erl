@@ -161,11 +161,14 @@ worker(#{conn_pid := ConnPid} = State) ->
             ok = gun:ws_send(ConnPid, {text, ReqJson}),
             worker(State#{requester_pid => RequesterPid});
         {subscribe_to_ws_msgs, RequesterPid} ->
+            error_logger:info_msg("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(State#{ subs_pid => RequesterPid });
-        {unsubscribe_to_ws_msgs, _RequesterPid} ->
+        {unsubscribe_to_ws_msgs, RequesterPid} ->
+            error_logger:info_msg("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(maps:without([subs_pid], State));
         % Should we match _Ref ?
         {gun_ws, ConnPid, _Ref, Response} ->
+            error_logger:info_msg("[~p][~p] ConnPid ~p\n",[?MODULE, ?FUNCTION_NAME, ConnPid]),
             worker(should_publish_or_forward(State, Response));
         X ->
             error_logger:info_msg("Unknown receive ~p \n", [X]),
