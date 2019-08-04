@@ -126,22 +126,26 @@ cleanup_client_pid(ClientPid) ->
 %% NB!
 %% Only handle the specific msg receives, so that the other messages
 %% are queued up in the mailbox, until init is over.
+%% Except for get_conn_pid, where a test might want to close early
 worker_init(Hostname, Port) ->
     ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
     {ok, ConnPid} = gun:open(Hostname, Port),
     true = erlang:link(ConnPid),
     receive
         {gun_up, ServerPid, Proto} ->
-            error_logger:info_msg("Gun connection ~p up [~p]", [ServerPid, Proto]),
-            ok
+            ?debugFmt("Gun connection ~p up [~p]", [ServerPid, Proto]),
+            ok;
+        {get_conn_pid, RequesterPid} ->
+            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
+            RequesterPid ! {ok, ConnPid},
     end,
     Ref = gun:ws_upgrade(ConnPid, "/ws"),
     receive
         {gun_upgrade, ServerPid2, Ref, Proto2, Headers} ->
-            error_logger:info_msg("Gun connection ~p upgraded [~p]\n[~p]", [ServerPid2, Proto2, Headers]),
+            ?debugFmt("Gun connection ~p upgraded [~p]\n[~p]", [ServerPid2, Proto2, Headers]),
             ok;
         Other2 ->
-            error_logger:info_msg("[~p][~p] Oops received other ~p\n", [?MODULE, ?FUNCTION_NAME, Other2])
+            ?debugFmt("[~p][~p] Oops received other ~p\n", [?MODULE, ?FUNCTION_NAME, Other2])
     end,
     % start periodic pinging
     {ok, TRef} =
@@ -156,25 +160,25 @@ worker(#{conn_pid := ConnPid} = State) ->
 
     receive
         {get_conn_pid, RequesterPid} ->
-            error_logger:info_msg("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
+            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             RequesterPid ! {ok, ConnPid},
             worker(State);
         {send_ws_request, RequesterPid, ReqJson} ->
-            error_logger:info_msg("sending unit test request ~p \n", [ReqJson]),
+            ?debugFmt("sending unit test request ~p \n", [ReqJson]),
             ok = gun:ws_send(ConnPid, {text, ReqJson}),
             worker(State#{requester_pid => RequesterPid});
         {subscribe_to_ws_msgs, RequesterPid} ->
-            error_logger:info_msg("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
+            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(State#{ subs_pid => RequesterPid });
         {unsubscribe_to_ws_msgs, RequesterPid} ->
-            error_logger:info_msg("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
+            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(maps:without([subs_pid], State));
         % Should we match _Ref ?
         {gun_ws, ConnPid, _Ref, Response} ->
-            error_logger:info_msg("[~p][~p] ConnPid ~p\n",[?MODULE, ?FUNCTION_NAME, ConnPid]),
+            ?debugFmt("[~p][~p] ConnPid ~p\n",[?MODULE, ?FUNCTION_NAME, ConnPid]),
             worker(should_publish_or_forward(State, Response));
         X ->
-            error_logger:info_msg("Unknown receive ~p \n", [X]),
+            ?debugFmt("Unknown receive ~p \n", [X]),
             worker(State)
     end.
 
@@ -187,12 +191,12 @@ should_publish_or_forward(State, Response) ->
         false ->
             case maps:is_key(requester_pid, State) of
                 true ->
-                    error_logger:info_msg("WS response forwarding to ClientPid ~p\n", [Response]),
+                    ?debugFmt("WS response forwarding to ClientPid ~p\n", [Response]),
                     #{ requester_pid := RequesterPid } = State,
                     RequesterPid ! {response, Response},
                     maps:without([requester_pid], State);
                 false ->
-                    error_logger:info_msg("WS response ~p\n", [Response]),
+                    ?debugFmt("WS response ~p\n", [Response]),
                     State
             end
     end.
