@@ -76,6 +76,14 @@
 start_client(Hostname, Port) ->
     {ok, StartedApps} = application:ensure_all_started(gun),
     Pid = spawn_link(fun() -> worker_init(Hostname, Port) end),
+    Pid ! {wait_for_init, self()},
+    receive
+        ok ->
+            ok
+    after
+        1000 ->
+            ?debugFmt("test code failed MOD ~p LINE ~p\n", [?MODULE, ?LINE])
+    end,
     {ok, Pid, StartedApps}.
 
 %% @doc
@@ -152,6 +160,13 @@ worker_init(Hostname, Port) ->
     {ok, TRef} =
         timer:apply_interval(
             ?CLIENT_PING_INTERVAL, gun, ws_send, [ConnPid, {text, <<"ping">>}]),
+    receive
+        {wait_for_init, RequesterPid} ->
+            RequesterPid ! ok
+    after
+        1000 ->
+            erlang:exit(self(), {failed, ?FUNCTION_NAME, line, ?LINE})
+    end,
     worker(#{tref => TRef,
              ref => Ref,
              conn_pid => ConnPid}).
