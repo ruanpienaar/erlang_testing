@@ -146,7 +146,7 @@ worker_init(Hostname, Port) ->
             ok
     after
         1000 ->
-            erlang:exit(self(), {failed, ?FUNCTION_NAME, line, ?LINE})
+            erlang:exit(self(), {{failed, ?FUNCTION_NAME, line, ?LINE}, could_not_upgrade_connection})
     end,
     % start periodic pinging
     {ok, TRef} =
