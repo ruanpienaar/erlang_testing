@@ -115,7 +115,7 @@ cleanup_client_pid(ClientPid) ->
         {ok, ConnPid} ->
             ok = gun:close(ConnPid)
     after
-        250 ->
+        1000 ->
             erlang:exit(self(), {failed, ?FUNCTION_NAME, line, ?LINE})
     end,
     ?assertEqual(undefined, erlang:process_info(ClientPid)).
