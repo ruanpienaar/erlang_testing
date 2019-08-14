@@ -74,6 +74,7 @@
 %% connect to the hostname and port and upgrade the connection to websocket
 %% @end
 start_client(Hostname, Port, WsPath) ->
+    % False if you've not started gun! So start gun before this...
     {gun, permanent} =
         lists:keyfind(gun, 1, element(2, lists:keyfind(started, 1, application:info()))),
     Pid = spawn_link(fun() -> worker_init(Hostname, Port, WsPath) end),
