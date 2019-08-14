@@ -119,7 +119,7 @@ flush() ->
     end.
 
 cleanup_client_pid(ClientPid) ->
-    ?debugFmt("unlinking ClientPid", []),
+    % ?debugFmt("unlinking ClientPid", []),
     true = erlang:unlink(ClientPid),
     ClientPid ! {get_conn_pid, self()},
     receive
@@ -141,12 +141,12 @@ cleanup_client_pid(ClientPid) ->
 %% are queued up in the mailbox, until init is over.
 %% Except for get_conn_pid, where a test might want to close early
 worker_init(Hostname, Port, WsPath) ->
-    ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
+    % ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
     {ok, ConnPid} = gun:open(Hostname, Port),
     true = erlang:link(ConnPid),
     receive
         {gun_up, ServerPid, Proto} ->
-            ?debugFmt("Gun connection ~p up [~p]", [ServerPid, Proto]),
+            % ?debugFmt("Gun connection ~p up [~p]", [ServerPid, Proto]),
             ok
     after
         1000 ->
@@ -155,7 +155,7 @@ worker_init(Hostname, Port, WsPath) ->
     Ref = gun:ws_upgrade(ConnPid, WsPath),
     receive
         {gun_upgrade, ServerPid2, Ref, Proto2, Headers} ->
-            ?debugFmt("Gun connection ~p upgraded [~p]\n[~p]", [ServerPid2, Proto2, Headers]),
+            % ?debugFmt("Gun connection ~p upgraded [~p]\n[~p]", [ServerPid2, Proto2, Headers]),
             ok
     after
         1000 ->
@@ -177,31 +177,31 @@ worker_init(Hostname, Port, WsPath) ->
              conn_pid => ConnPid}).
 
 worker(#{conn_pid := ConnPid} = State) ->
-    ?debugFmt("[~p][~p] worker loop", [?MODULE, ?FUNCTION_NAME]),
+    % ?debugFmt("[~p][~p] worker loop", [?MODULE, ?FUNCTION_NAME]),
     receive
         {get_conn_pid, RequesterPid} ->
-            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
+            % ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             RequesterPid ! {ok, ConnPid},
             worker(State);
         {send_ws_request, RequesterPid, SpecialReq} when SpecialReq == close orelse
                                                          SpecialReq == ping orelse
                                                          SpecialReq == pong ->
-            ?debugFmt("sending unit test request ~p \n", [SpecialReq]),
+            % ?debugFmt("sending unit test request ~p \n", [SpecialReq]),
             ok = gun:ws_send(ConnPid, SpecialReq),
             worker(State#{requester_pid => RequesterPid});
         {send_ws_request, RequesterPid, ReqJson} when is_binary(ReqJson) ->
-            ?debugFmt("sending unit test request ~p \n", [ReqJson]),
+            % ?debugFmt("sending unit test request ~p \n", [ReqJson]),
             ok = gun:ws_send(ConnPid, {text, ReqJson}),
             worker(State#{requester_pid => RequesterPid});
         {subscribe_to_ws_msgs, RequesterPid} ->
-            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
+            % ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(State#{ subs_pid => RequesterPid });
         {unsubscribe_to_ws_msgs, RequesterPid} ->
-            ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
+            % ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(maps:without([subs_pid], State));
         % Should we match _Ref ?
         {gun_ws, ConnPid, _Ref, Response} ->
-            ?debugFmt("[~p][~p] ConnPid ~p\n",[?MODULE, ?FUNCTION_NAME, ConnPid]),
+            % ?debugFmt("[~p][~p] ConnPid ~p\n",[?MODULE, ?FUNCTION_NAME, ConnPid]),
             worker(should_publish_or_forward(State, Response));
         X ->
             ?debugFmt("Unknown receive ~p \n", [X]),
@@ -217,12 +217,12 @@ should_publish_or_forward(State, Response) ->
         false ->
             case maps:is_key(requester_pid, State) of
                 true ->
-                    ?debugFmt("WS response forwarding to ClientPid ~p\n", [Response]),
+                    % ?debugFmt("WS response forwarding to ClientPid ~p\n", [Response]),
                     #{ requester_pid := RequesterPid } = State,
                     RequesterPid ! {response, Response},
                     maps:without([requester_pid], State);
                 false ->
-                    ?debugFmt("WS response ~p\n", [Response]),
+                    % ?debugFmt("WS response ~p\n", [Response]),
                     State
             end
     end.
