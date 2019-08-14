@@ -124,8 +124,8 @@ cleanup_client_pid(ClientPid) ->
     ClientPid ! {get_conn_pid, self()},
     receive
         {ok, ConnPid} ->
-            ?debugFmt("unlinking ConnPid", []),
-            true = erlang:unlink(ConnPid),
+            % ?debugFmt("unlinking ConnPid", []),
+            % true = erlang:unlink(ConnPid),
             ok = gun:close(ConnPid)
     after
         1000 ->
@@ -143,7 +143,7 @@ cleanup_client_pid(ClientPid) ->
 worker_init(Hostname, Port, WsPath) ->
     ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
     {ok, ConnPid} = gun:open(Hostname, Port),
-    true = erlang:link(ConnPid),
+    % true = erlang:link(ConnPid),
     receive
         {gun_up, ServerPid, Proto} ->
             ?debugFmt("Gun connection ~p up [~p]", [ServerPid, Proto]),
