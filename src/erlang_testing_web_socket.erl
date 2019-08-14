@@ -174,8 +174,7 @@ worker_init(Hostname, Port, WsPath) ->
              conn_pid => ConnPid}).
 
 worker(#{conn_pid := ConnPid} = State) ->
-    ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
-
+    ?debugFmt("[~p][~p] worker loop", [?MODULE, ?FUNCTION_NAME]),
     receive
         {get_conn_pid, RequesterPid} ->
             ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
