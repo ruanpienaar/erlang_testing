@@ -119,10 +119,12 @@ flush() ->
     end.
 
 cleanup_client_pid(ClientPid) ->
+    ?debugFmt("unlinking ClientPid", []),
     true = erlang:unlink(ClientPid),
     ClientPid ! {get_conn_pid, self()},
     receive
         {ok, ConnPid} ->
+            ?debugFmt("unlinking ConnPid", []),
             true = erlang:unlink(ConnPid),
             ok = gun:close(ConnPid)
     after
