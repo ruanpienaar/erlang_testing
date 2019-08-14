@@ -123,6 +123,7 @@ cleanup_client_pid(ClientPid) ->
     ClientPid ! {get_conn_pid, self()},
     receive
         {ok, ConnPid} ->
+            true = erlang:unlink(ConnPid),
             ok = gun:close(ConnPid)
     after
         1000 ->
