@@ -52,7 +52,7 @@
 %%
 %% some_unit_test() ->
 %%     ClientPid = erlang_testing_web_socket:start_client("localhost", 8080, "ws_url"),
-%%     erlang_testing_web_socket:send_ws_request(self(), ClientPid, <<"ping">>),
+%%     erlang_testing_web_socket:send_ws_request(self(), ClientPid, ping),
 %%     receive
 %%         X ->
 %%             ?assertEqual(
