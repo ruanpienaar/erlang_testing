@@ -181,7 +181,13 @@ worker(#{conn_pid := ConnPid} = State) ->
             ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             RequesterPid ! {ok, ConnPid},
             worker(State);
-        {send_ws_request, RequesterPid, ReqJson} ->
+        {send_ws_request, RequesterPid, SpecialReq} when SpecialReq == close orelse
+                                                         SpecialReq == ping orelse
+                                                         SpecialReq == pong ->
+            ?debugFmt("sending unit test request ~p \n", [SpecialReq]),
+            ok = gun:ws_send(ConnPid, SpecialReq),
+            worker(State#{requester_pid => RequesterPid});
+        {send_ws_request, RequesterPid, ReqJson} when is_binary(ReqJson) ->
             ?debugFmt("sending unit test request ~p \n", [ReqJson]),
             ok = gun:ws_send(ConnPid, {text, ReqJson}),
             worker(State#{requester_pid => RequesterPid});
