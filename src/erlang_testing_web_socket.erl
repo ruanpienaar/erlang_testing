@@ -143,7 +143,7 @@ cleanup_client_pid(ClientPid) ->
 worker_init(Hostname, Port, WsPath) ->
     ?debugFmt("[~p][~p]", [?MODULE, ?FUNCTION_NAME]),
     {ok, ConnPid} = gun:open(Hostname, Port),
-    % true = erlang:link(ConnPid),
+    true = erlang:link(ConnPid),
     receive
         {gun_up, ServerPid, Proto} ->
             ?debugFmt("Gun connection ~p up [~p]", [ServerPid, Proto]),
