@@ -74,7 +74,8 @@
 %% connect to the hostname and port and upgrade the connection to websocket
 %% @end
 start_client(Hostname, Port, WsPath) ->
-    {ok, StartedApps} = application:ensure_all_started(gun),
+    {gun, permanent} =
+        lists:keyfind(gun, 1, element(2, lists:keyfind(started, 1, application:info()))),
     Pid = spawn_link(fun() -> worker_init(Hostname, Port, WsPath) end),
     Pid ! {wait_for_init, self()},
     receive
@@ -84,7 +85,7 @@ start_client(Hostname, Port, WsPath) ->
         1000 ->
             ?debugFmt("test code failed MOD ~p LINE ~p\n", [?MODULE, ?LINE])
     end,
-    {ok, Pid, StartedApps}.
+    {ok, Pid}.
 
 %% @doc
 %% send a web socket request to the connected websocket client pid.
