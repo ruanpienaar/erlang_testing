@@ -11,7 +11,7 @@ url_req(Url) ->
         holster:once_off_req(
             Url,
             #{
-                retries => 0,
+                retry => 0,
                 retry_timeout => 0,
                 domain_lookup_timeout => 250,
                 connect_timeout => 250,
