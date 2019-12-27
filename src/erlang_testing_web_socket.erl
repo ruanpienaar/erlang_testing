@@ -1,4 +1,7 @@
 -module(erlang_testing_web_socket).
+
+%% TODO: re-write into a holster gen_statem
+
 -include_lib("eunit/include/eunit.hrl").
 -export([
     start_client/3,
@@ -145,7 +148,7 @@ worker_init(Hostname, Port, WsPath) ->
     {ok, ConnPid} = gun:open(Hostname, Port),
     true = erlang:link(ConnPid),
     receive
-        {gun_up, ServerPid, Proto} ->
+        {gun_up, _ServerPid, _Proto} ->
             % ?debugFmt("Gun connection ~p up [~p]", [ServerPid, Proto]),
             ok
     after
@@ -154,7 +157,7 @@ worker_init(Hostname, Port, WsPath) ->
     end,
     Ref = gun:ws_upgrade(ConnPid, WsPath),
     receive
-        {gun_upgrade, ServerPid2, Ref, Proto2, Headers} ->
+        {gun_upgrade, _ServerPid2, Ref, _Proto2, _Headers} ->
             % ?debugFmt("Gun connection ~p upgraded [~p]\n[~p]", [ServerPid2, Proto2, Headers]),
             ok
     after
@@ -196,7 +199,8 @@ worker(#{conn_pid := ConnPid} = State) ->
         {subscribe_to_ws_msgs, RequesterPid} ->
             % ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(State#{ subs_pid => RequesterPid });
-        {unsubscribe_to_ws_msgs, RequesterPid} ->
+        {unsubscribe_to_ws_msgs, _RequesterPid} ->
+            %% TODO: maybe reply back to client ?
             % ?debugFmt("[~p][~p] ~p\n",[?MODULE, ?FUNCTION_NAME, RequesterPid]),
             worker(maps:without([subs_pid], State));
         % Should we match _Ref ?
