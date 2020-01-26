@@ -1,14 +1,16 @@
 -module(erlang_testing_web).
 
 -export([
-    url_req/1,
-    long_url_req/1,
+    url_req/2,
+    long_url_req/2,
     close_long_req/1
 ]).
 
-url_req(Url) ->
+-spec url_req(holster:req_type(), http_uri:uri()) -> {ok, {pos_integer(), list(), binary()}}.
+url_req(ReqType, Url) ->
     case
-        holster:once_off_req(
+        holster:simple_proc_req(
+            ReqType,
             Url,
             #{
                 retry => 0,
@@ -18,7 +20,8 @@ url_req(Url) ->
                 http_opts => #{
                     closing_timeout => 250
                 }
-            })
+            }
+        )
     of
         {response, {StatusCode, ResponseHeaders, ResponseData}} ->
             {ok, {StatusCode, ResponseHeaders, ResponseData}};
@@ -28,9 +31,11 @@ url_req(Url) ->
             X
     end.
 
-long_url_req(Url) ->
+-spec long_url_req(holster:req_type(), http_uri:uri()) -> {ok, pid(), {pos_integer(), list(), binary()}}.
+long_url_req(ReqType, Url) ->
     case
-        holster:long_running_req(
+        holster:stay_connected_req(
+            ReqType,
             Url,
             #{
                 retry => 10000,
